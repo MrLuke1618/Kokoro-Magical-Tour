@@ -1,6 +1,6 @@
 {
   "name": "Hanoi Sunset Companion & Studio Ghibli Edition",
   "description": "A cozy, tactile digital sanctuary styled like a hand-painted magical sketchbook designed for exploring sunsets, cafes, style deals, and photo spots in Hanoi.",
-  "requestFramePermissions": ["microphone", "geolocation"],
+  "requestFramePermissions": ["geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

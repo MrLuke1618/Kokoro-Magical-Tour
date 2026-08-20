@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Sunset, 
-  CloudRain, 
   Wind, 
   Droplets, 
   Sparkles, 
@@ -12,15 +11,19 @@ import {
   Check, 
   Compass,
   Zap,
-  LocateFixed
+  LocateFixed,
+  Maximize2,
+  Navigation,
+  Globe,
+  Flame
 } from 'lucide-react';
 import { Language, SunsetSpot, ThemePalette } from '../types';
 import { SUNSET_SPOTS } from '../data/mockData';
-import { GhibliLiveVoiceCompanion } from './GhibliLiveVoiceCompanion';
 import { LocationInspectorModal, SelectedLocationData } from './LocationInspectorModal';
-import { LocationRecommendationCard } from './LocationRecommendationCard';
 import { SketchbookWeatherIcon, WeatherConditionType } from './SketchbookWeatherIcon';
+import { SketchbookQuickNote } from './SketchbookQuickNote';
 import { useLocationWeather } from '../hooks/useLocationWeather';
+import { sortSpotsByProximityAndPopularity, formatDistanceKm, estimateTravelMinutes } from '../utils/geoDistance';
 
 interface TabSunsetPlannerProps {
   lang: Language;
@@ -32,6 +35,8 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedSpot, setSelectedSpot] = useState<SelectedLocationData | null>(null);
   const [activeCardId, setActiveCardId] = useState<string>(SUNSET_SPOTS[0].id);
+  const [groundingSources, setGroundingSources] = useState<{ title: string; uri: string }[]>([]);
+  const [isRealTimeGrounded, setIsRealTimeGrounded] = useState<boolean>(false);
 
   // Live Location & Weather Hook
   const { weather, requestUserLocation, refreshWeather } = useLocationWeather(lang);
@@ -42,6 +47,16 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
       ? 'Hồ Tây chiều nay đón ráng vàng đẹp nhất từ 17:40 đến 18:05 tại ngã ba Quảng Bá. Hãy chọn ghế sát mép nước để tránh ánh nắng gắt trực diện vào ống kính.'
       : 'West Lake catches prime golden light between 5:40 PM and 6:05 PM near Quang Ba. Choose a shoreline seat to avoid direct lens glare.'
   );
+
+  // Sort spots by proximity to user coordinates and popularity
+  const sortedSpots = useMemo(() => {
+    return sortSpotsByProximityAndPopularity(
+      SUNSET_SPOTS,
+      weather.latitude,
+      weather.longitude,
+      0.65 // 65% proximity weight, 35% popularity
+    );
+  }, [weather.latitude, weather.longitude]);
 
   const handleSelectSpot = (spot: SunsetSpot, openModal = true) => {
     setActiveCardId(spot.id);
@@ -74,12 +89,10 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Dynamic 1-Click AI Sunset Plan (Always generates a fresh unique response)
+  // Dynamic Real-Time Grounded AI Sunset Plan
   const handleGenerateFreshPlan = async () => {
     setIsGeneratingPlan(true);
     const currentHour = new Date().getHours() || 17;
-    const randomSpot = SUNSET_SPOTS[Math.floor(Math.random() * SUNSET_SPOTS.length)];
-    setActiveCardId(randomSpot.id);
 
     try {
       const res = await fetch('/api/ai/sunset-plan', {
@@ -89,13 +102,20 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
           currentHour,
           weather: `${weather.weatherDescriptionEn}, ${weather.temperature}°C, Golden Hour ${weather.goldenHourStart}-${weather.goldenHourEnd}`,
           lang,
-          seed: Date.now() + Math.floor(Math.random() * 1000)
+          latitude: weather.latitude,
+          longitude: weather.longitude,
+          userLocationName: weather.locationName,
+          seed: Date.now()
         })
       });
       const data = await res.json();
       if (data.text) {
         setDynamicAiPlan(data.text);
       }
+      if (data.sources && Array.isArray(data.sources)) {
+        setGroundingSources(data.sources);
+      }
+      setIsRealTimeGrounded(!!data.realTimeGrounded);
     } catch (err) {
       console.error(err);
     } finally {
@@ -105,56 +125,11 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Personalized Location Recommendation Card */}
-      <LocationRecommendationCard 
-        category="sunset" 
-        lang={lang} 
-        theme={theme} 
-      />
-
-      {/* Location Permission Request Banner */}
-      {!weather.isUserLocation && (
-        <div className="p-4 sm:p-5 rounded-[22px] bg-gradient-to-r from-[#f7eedf] via-[#fbf6ed] to-[#f5ebd8] border-2 border-[#d49b48]/60 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#d49b48]/20 text-[#8a532a] border border-[#d49b48]/40 flex items-center justify-center shrink-0 mt-0.5">
-              <LocateFixed className="w-5 h-5 text-[#995c1a]" />
-            </div>
-            <div className="space-y-0.5">
-              <h4 className="font-serif-title font-bold text-sm sm:text-base text-[#3a2e28] flex items-center gap-2">
-                <span>{lang === 'vi' ? 'Cập Nhật Thời Tiết Theo Vị Trí Của Bạn' : 'Live Weather for Your Exact Location'}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#d49b48]/20 text-[#8a532a] font-bold">
-                  GPS
-                </span>
-              </h4>
-              <p className="text-xs text-[#635246] max-w-2xl leading-relaxed">
-                {lang === 'vi' 
-                  ? 'Cho phép ứng dụng truy cập vị trí hiện tại để tính toán chính xác nhiệt độ, độ ẩm và đếm ngược giờ hoàng hôn (Golden Hour) chuẩn từng phút tại nơi bạn đang đứng.'
-                  : 'Allow location access to calculate exact live temperature, humidity, wind, and precise local Golden Hour sunset times for where you are right now.'}
-              </p>
-            </div>
-          </div>
-
-          <button
-            id="request-user-gps-location-btn"
-            onClick={requestUserLocation}
-            disabled={weather.status === 'loading'}
-            className="w-full sm:w-auto shrink-0 px-4 py-2.5 rounded-xl bg-[#3a2e28] hover:bg-[#524137] active:scale-97 text-[#fdfbf7] font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50"
-          >
-            <LocateFixed className={`w-4 h-4 text-[#d49b48] ${weather.status === 'loading' ? 'animate-spin' : ''}`} />
-            <span>
-              {weather.status === 'loading'
-                ? (lang === 'vi' ? 'Đang Định Vị...' : 'Locating...')
-                : (lang === 'vi' ? 'Đồng Ý Chia Sẻ Vị Trí' : 'Allow My Location')}
-            </span>
-          </button>
-        </div>
-      )}
-
-      {/* 1. Live Weather & Golden Hour Countdown */}
+      {/* FEATURE 1: Micro-Climate & Astronomical Sunset Dashboard */}
       <div className="parchment-card rounded-[24px] p-5 sm:p-6 border border-[#ded4c3] relative overflow-hidden bg-[#fbf8f2]">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           {/* Location & Real-time Weather */}
-          <div className="space-y-2.5">
+          <div className="space-y-2.5 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="w-6 h-6 rounded-[8px] bg-[#d49b48]/20 border border-[#d49b48]/30 text-[#a66d1f] flex items-center justify-center shadow-2xs">
                 <MapPin className="w-3.5 h-3.5" />
@@ -170,8 +145,8 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
                 {weather.isUserLocation && <Check className="w-3 h-3 text-[#5d6e58]" />}
                 <span>
                   {weather.isUserLocation 
-                    ? (lang === 'vi' ? 'Vị trí của bạn (Live GPS)' : 'Your GPS Location (Live)')
-                    : (lang === 'vi' ? 'Thời tiết Hà Nội' : 'Hanoi Weather')}
+                    ? (lang === 'vi' ? 'Toạ độ GPS thực tế' : 'Live GPS Location')
+                    : (lang === 'vi' ? 'Toạ độ Hồ Tây' : 'West Lake Location')}
                 </span>
               </span>
 
@@ -179,14 +154,13 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
               <button
                 onClick={weather.isUserLocation ? refreshWeather : requestUserLocation}
                 className="p-1 rounded-lg hover:bg-[#ebdcc4] text-[#736357] transition-colors cursor-pointer"
-                title={lang === 'vi' ? 'Cập nhật lại thời tiết' : 'Refresh Weather'}
+                title={lang === 'vi' ? 'Cập nhật lại tọa độ & thời tiết' : 'Refresh coordinates & weather'}
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${weather.status === 'loading' ? 'animate-spin' : ''}`} />
               </button>
             </div>
 
             <div className="flex items-center gap-3 sm:gap-4">
-              {/* Hand-drawn Sketchbook Animated Weather Icon */}
               <div className="p-1.5 rounded-2xl bg-gradient-to-b from-[#f5ede0] to-[#ecdcc8] border border-[#d8caa6] shadow-2xs">
                 <SketchbookWeatherIcon 
                   condition={selectedConditionPreview || undefined}
@@ -233,12 +207,12 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
               </div>
             </div>
 
-            {/* Interactive Sketchbook Weather Art Palette Preview */}
+            {/* Hand-Drawn Climate Palette */}
             <div className="pt-2 border-t border-[#ded4c3]/70">
               <div className="flex items-center justify-between gap-2 mb-1.5">
                 <span className="text-[11px] font-semibold text-[#8a532a] flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-[#d49b48]" />
-                  <span>{lang === 'vi' ? 'Nét Vẽ Khí Hậu Sổ Tay Thủ Công (Ghibli Art)' : 'Hand-Drawn Sketchbook Climate Art'}</span>
+                  <span>{lang === 'vi' ? 'Nét Vẽ Khí Hậu Sổ Tay Thủ Công' : 'Sketchbook Climate Art'}</span>
                 </span>
                 {selectedConditionPreview && (
                   <button
@@ -252,13 +226,10 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
                 {[
                   { type: 'clear' as WeatherConditionType, labelVi: 'Nắng Trong', labelEn: 'Clear' },
-                  { type: 'clear-night' as WeatherConditionType, labelVi: 'Trăng Đêm', labelEn: 'Moonlight' },
                   { type: 'partly-cloudy' as WeatherConditionType, labelVi: 'Mây Mỏng', labelEn: 'Partly Cloudy' },
                   { type: 'cloudy' as WeatherConditionType, labelVi: 'Nhiều Mây', labelEn: 'Overcast' },
                   { type: 'drizzle' as WeatherConditionType, labelVi: 'Mưa Phùn', labelEn: 'Drizzle' },
                   { type: 'rain' as WeatherConditionType, labelVi: 'Mưa Rào', labelEn: 'Rain' },
-                  { type: 'thunderstorm' as WeatherConditionType, labelVi: 'Dông Chiều', labelEn: 'Thunder' },
-                  { type: 'fog' as WeatherConditionType, labelVi: 'Sương Khói', labelEn: 'Misty Fog' },
                   { type: 'windy' as WeatherConditionType, labelVi: 'Gió Hồ', labelEn: 'Lake Breeze' }
                 ].map(cond => {
                   const isSelected = selectedConditionPreview === cond.type;
@@ -271,7 +242,6 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
                           ? 'bg-[#d49b48]/25 text-[#733f10] border-[#d49b48] font-bold shadow-2xs' 
                           : 'bg-[#f4ecdf] hover:bg-[#ebdcc4] text-[#55463b] border-[#ded0b8]'
                       }`}
-                      title={lang === 'vi' ? `Xem hoạt họa nét vẽ ${cond.labelVi}` : `Preview ${cond.labelEn} sketch`}
                     >
                       <SketchbookWeatherIcon 
                         condition={cond.type} 
@@ -287,7 +257,7 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
             </div>
           </div>
 
-          {/* Golden Hour Countdown Box */}
+          {/* Astronomical Golden Hour Countdown */}
           <div className="w-full lg:w-auto bg-[#f5ede0] border border-[#d8caa6] rounded-[20px] p-4 sm:p-5 flex flex-col justify-center min-w-[280px] shadow-2xs space-y-2.5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs font-semibold text-[#8a532a]">
@@ -318,22 +288,35 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
               className="w-full py-2.5 px-3 rounded-[12px] bg-[#d49b48] hover:bg-[#be8737] active:scale-95 text-[#fdfbf7] font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-50"
             >
               <Zap className={`w-3.5 h-3.5 fill-white ${isGeneratingPlan ? 'animate-spin' : ''}`} />
-              <span>{lang === 'vi' ? '✨ Tạo Lịch Trình AI Mới (1 Chạm)' : '✨ Generate Fresh AI Plan'}</span>
+              <span>{lang === 'vi' ? 'Tạo Chiến Lược Hoàng Hôn AI Mới' : 'Generate Real-Time AI Plan'}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 2. Dynamic AI Sunset Observation Strategy Box */}
+      {/* FEATURE 2: Real-Time Search-Grounded AI Sunset Strategy */}
       <div className="parchment-card rounded-[22px] p-5 sm:p-6 border-2 border-[#d49b48]/35 bg-[#fefcf8] shadow-xs space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-[#8a532a]">
             <div className="w-7 h-7 rounded-[10px] bg-[#d49b48]/20 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-[#a66d1f]" />
             </div>
-            <h3 className="font-serif-title font-bold text-sm sm:text-base text-[#3a2e28]">
-              {lang === 'vi' ? 'Chiến Lược Quan Sát Hoàng Hôn Từ AI' : 'AI Sunset Observation Strategy'}
-            </h3>
+            <div>
+              <h3 className="font-serif-title font-bold text-sm sm:text-base text-[#3a2e28] flex items-center gap-2">
+                <span>{lang === 'vi' ? 'Chiến Lược Quan Sát Hoàng Hôn Thời Gian Thực' : 'Real-Time AI Sunset Strategy'}</span>
+                {isRealTimeGrounded && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold flex items-center gap-1">
+                    <Globe className="w-2.5 h-2.5" />
+                    <span>Google Grounded</span>
+                  </span>
+                )}
+              </h3>
+              <p className="text-[11px] text-[#736357]">
+                {lang === 'vi' 
+                  ? 'Được tính toán theo dữ liệu bầu trời, tọa độ thực tế và tìm kiếm thời gian thực' 
+                  : 'Computed with live sky telemetry, user coordinates, and real-time search'}
+              </p>
+            </div>
           </div>
 
           <button
@@ -343,37 +326,72 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
             title={lang === 'vi' ? 'Tạo gợi ý mới' : 'Generate new advice'}
           >
             <RefreshCw className={`w-3.5 h-3.5 text-[#a66d1f] ${isGeneratingPlan ? 'animate-spin' : ''}`} />
-            <span>{lang === 'vi' ? 'Làm mới gợi ý' : 'Refresh Advice'}</span>
+            <span>{lang === 'vi' ? 'Làm mới' : 'Refresh'}</span>
           </button>
         </div>
 
-        <div className="p-4 rounded-[16px] bg-[#f8f2e7] border border-[#e2d5be]">
+        <div className="p-4 rounded-[16px] bg-[#f8f2e7] border border-[#e2d5be] space-y-2">
           <p className="text-xs sm:text-sm leading-relaxed text-[#3d2f26] font-medium">
             {dynamicAiPlan}
           </p>
+
+          {groundingSources.length > 0 && (
+            <div className="pt-2 border-t border-[#e2d5be] flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] text-[#786558] font-semibold">
+                {lang === 'vi' ? 'Nguồn dữ liệu thực tế:' : 'Live Sources:'}
+              </span>
+              {groundingSources.slice(0, 3).map((src, idx) => (
+                <a
+                  key={idx}
+                  href={src.uri}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-[#8a532a] hover:underline flex items-center gap-1 bg-[#ede1cb] px-2 py-0.5 rounded-md truncate max-w-[200px]"
+                >
+                  <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                  <span className="truncate">{src.title}</span>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 3. Live Voice Companion (English Voice with Vietnamese Subtitles) */}
-      <GhibliLiveVoiceCompanion lang={lang} />
-
-      {/* 4. Top Curated Sunset Coordinates */}
+      {/* FEATURE 3: Distance-Ranked Sunset Vantage Points */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-lg sm:text-xl font-serif-title font-bold text-[#3a2e28]">
-            {lang === 'vi' ? 'Toạ Độ Ngắm Hoàng Hôn Nổi Bật' : 'Curated Sunset Viewpoints'}
-          </h3>
-          <p className="text-xs sm:text-sm text-[#736357]">
-            {lang === 'vi' 
-              ? 'Các góc ngắm ráng chiều thoáng đãng quanh Hồ Tây & Cầu Long Biên'
-              : 'Scenic, unobstructed sunset vantage points around West Lake & Long Bien'}
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-lg sm:text-xl font-serif-title font-bold text-[#3a2e28] flex items-center gap-2">
+              <span>{lang === 'vi' ? 'Toạ Độ Ngắm Hoàng Hôn (Sắp Xếp Theo Khoảng Cách & Độ Nổi Tiếng)' : 'Sunset Viewpoints (Ranked by Proximity & Popularity)'}</span>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#d49b48]/20 text-[#8a532a] font-bold">
+                {sortedSpots.length} {lang === 'vi' ? 'Điểm' : 'Spots'}
+              </span>
+            </h3>
+            <p className="text-xs sm:text-sm text-[#736357]">
+              {lang === 'vi' 
+                ? 'Tự động tính toán khoảng cách km từ tọa độ của bạn và ước lượng thời gian di chuyển'
+                : 'Automatically calculates live distance in km and travel estimates from your position'}
+            </p>
+          </div>
+
+          {!weather.isUserLocation && (
+            <button
+              onClick={requestUserLocation}
+              className="text-xs px-3 py-1.5 rounded-xl bg-[#eaddc7] hover:bg-[#decbb0] text-[#554336] font-semibold border border-[#cdbba0] flex items-center gap-1.5 self-start cursor-pointer"
+            >
+              <LocateFixed className="w-3.5 h-3.5 text-[#8a532a]" />
+              <span>{lang === 'vi' ? 'Bật định vị GPS để đo khoảng cách' : 'Enable GPS for exact distance'}</span>
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-          {SUNSET_SPOTS.map((spot: SunsetSpot) => {
+          {sortedSpots.map((spot: SunsetSpot & { distanceKm?: number }) => {
             const isCopied = copiedId === spot.id;
             const isSelected = activeCardId === spot.id;
+            const walkMins = spot.distanceKm ? estimateTravelMinutes(spot.distanceKm, 'walk') : null;
+            const bikeMins = spot.distanceKm ? estimateTravelMinutes(spot.distanceKm, 'bike') : null;
+
             return (
               <div 
                 key={spot.id}
@@ -392,16 +410,30 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
                       {spot.iconEmoji}
                     </span>
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#635345] px-2 py-0.5 rounded-full bg-white/50">
-                        {spot.district}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#635345] px-2 py-0.5 rounded-full bg-white/50">
+                          {spot.district}
+                        </span>
+                        {spot.distanceKm !== undefined && (
+                          <span className="text-[10px] font-bold text-[#8a532a] px-2 py-0.5 rounded-full bg-[#fdfbf7]/90 border border-[#d8caa6] flex items-center gap-1">
+                            <Navigation className="w-2.5 h-2.5 text-[#a66d1f]" />
+                            <span>{formatDistanceKm(spot.distanceKm, lang)}</span>
+                          </span>
+                        )}
+                        {spot.popularityScore && (
+                          <span className="text-[10px] font-bold text-[#995c1a] px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 flex items-center gap-0.5">
+                            <Flame className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+                            <span>{spot.popularityScore}★</span>
+                          </span>
+                        )}
+                      </div>
                       <h4 className="font-serif-title font-bold text-base sm:text-lg text-[#3a2e28] mt-0.5">
                         {lang === 'vi' ? spot.name : spot.nameEn}
                       </h4>
                     </div>
                   </div>
 
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#fdfbf7]/90 text-[#8a532a] border border-[#d8caa6] shadow-2xs">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#fdfbf7]/90 text-[#8a532a] border border-[#d8caa6] shadow-2xs shrink-0">
                     {spot.bestTime}
                   </span>
                 </div>
@@ -413,6 +445,15 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
                   </p>
 
                   <div className="space-y-2 pt-1">
+                    {/* Travel estimate badge if distance available */}
+                    {spot.distanceKm !== undefined && (
+                      <div className="flex items-center gap-2 text-[11px] text-[#6e5849] bg-[#f2e9dc] px-2.5 py-1 rounded-lg border border-[#e2d5be]">
+                        <span>🚶 {walkMins} {lang === 'vi' ? 'phút đi bộ' : 'min walk'}</span>
+                        <span>•</span>
+                        <span>🛵 {bikeMins} {lang === 'vi' ? 'phút xe máy' : 'min ride'}</span>
+                      </div>
+                    )}
+
                     {/* Address with 1-click copy */}
                     <div 
                       onClick={(e) => {
@@ -434,23 +475,34 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
 
                     {/* Practical Viewing Tip */}
                     <div className="p-2.5 rounded-[12px] bg-[#d49b48]/10 border border-[#d49b48]/20 text-xs text-[#784f1e]">
-                      <span className="font-semibold">{lang === 'vi' ? 'Góc máy đẹp: ' : 'Photo Tip: '}</span>
+                      <span className="font-semibold">{lang === 'vi' ? 'Góc quan sát tối ưu: ' : 'Observation Tip: '}</span>
                       <span>{lang === 'vi' ? spot.photoTip : spot.photoTipEn}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Action button */}
-                <div className="p-4 pt-0">
+                {/* Actions: Focus Mode & Google Maps */}
+                <div className="p-4 pt-0 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectSpot(spot, true);
+                    }}
+                    className="py-2.5 px-3 rounded-[12px] bg-[#ece2d0] hover:bg-[#dfd3bf] text-[#4a392e] text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-[#d4caa6]"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5 text-[#8a532a]" />
+                    <span>{lang === 'vi' ? 'Xem Focus Mode' : 'Focus Mode'}</span>
+                  </button>
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spot.mapsQuery)}`, '_blank', 'noopener,noreferrer');
                     }}
-                    className="w-full py-2.5 px-3 rounded-[12px] bg-[#3a2e28] hover:bg-[#4d3d35] active:scale-98 text-[#fdfbf7] text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                    className="py-2.5 px-3 rounded-[12px] bg-[#3a2e28] hover:bg-[#4d3d35] active:scale-98 text-[#fdfbf7] text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                   >
                     <MapPin className="w-3.5 h-3.5 text-[#d49b48]" />
-                    <span>{lang === 'vi' ? 'Chỉ Đường Google Maps' : 'Open in Google Maps'}</span>
+                    <span>{lang === 'vi' ? 'Google Maps' : 'Google Maps'}</span>
                     <ExternalLink className="w-3 h-3 opacity-70" />
                   </button>
                 </div>
@@ -460,7 +512,28 @@ export const TabSunsetPlanner: React.FC<TabSunsetPlannerProps> = ({ lang, theme 
         </div>
       </div>
 
-      {/* Location Inspection Modal */}
+      {/* FEATURE 4: Personal Sunset Sketchbook & Quick Field Notes */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-lg sm:text-xl font-serif-title font-bold text-[#3a2e28]">
+            {lang === 'vi' ? 'Sổ Tay Ghi Chép Hoàng Hôn Hồ Tây' : 'Lakeside Sunset Field Notes'}
+          </h3>
+          <p className="text-xs sm:text-sm text-[#736357]">
+            {lang === 'vi' 
+              ? 'Lưu lại các ghi chú ngắn, góc bàn ưng ý và khoảnh khắc ráng chiều riêng tư (lưu trữ tự động trên thiết bị)'
+              : 'Save short observations, favorite table spots, and dusk memories (persisted locally)'}
+          </p>
+        </div>
+
+        <SketchbookQuickNote
+          targetId="west-lake-sunset-general"
+          targetTitle={lang === 'vi' ? 'Nhật Ký Hoàng Hôn Hồ Tây' : 'West Lake Sunset Journal'}
+          lang={lang}
+          theme={theme}
+        />
+      </div>
+
+      {/* Location Inspection Modal (Focus Mode) */}
       <LocationInspectorModal
         location={selectedSpot}
         onClose={() => setSelectedSpot(null)}

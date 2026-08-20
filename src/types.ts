@@ -26,6 +26,9 @@ export interface SunsetSpot {
   name: string;
   nameEn: string;
   district: string;
+  lat?: number;
+  lng?: number;
+  popularityScore?: number;
   image?: string;
   iconEmoji: string;
   gradientTheme: string;
@@ -69,6 +72,9 @@ export interface FoodSpot {
   categoryEn: string;
   priceRange: string;
   rating: number;
+  lat?: number;
+  lng?: number;
+  popularityScore?: number;
   image?: string;
   iconEmoji: string;
   gradientTheme: string;
@@ -88,6 +94,9 @@ export interface PhotoSpot {
   nameEn: string;
   district: string;
   districtEn: string;
+  lat?: number;
+  lng?: number;
+  popularityScore?: number;
   image?: string;
   iconEmoji: string;
   gradientTheme: string;
