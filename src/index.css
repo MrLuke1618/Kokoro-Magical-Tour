@@ -1,0 +1,329 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+/* =========================================================================
+   1. WARM GOLDEN HOUR PALETTE (DAY MODE)
+   ========================================================================= */
+.theme-golden {
+  --bg-app: #f4f1ea;
+  --bg-card: #fdfbf7;
+  --bg-card-elevated: #faf5eb;
+  --bg-card-nested: #f5ede0;
+  --bg-surface-interactive: #ede2cf;
+  --text-primary: #3a2e28;
+  --text-secondary: #5d4f45;
+  --text-muted: #736357;
+  --border-subtle: #ded4c3;
+  --border-accent: #d49b48;
+  --accent-primary: #d49b48;
+  --accent-primary-text: #8a532a;
+  --accent-sage: #5d6e58;
+  --accent-terracotta: #99472e;
+  --accent-sky: #7a9aab;
+
+  background-color: #f4f1ea;
+  color: #3a2e28;
+}
+
+.theme-golden .parchment-card {
+  background-color: #fdfbf7;
+  border: 1px solid #ded4c3;
+  box-shadow: 0 4px 20px -2px rgba(93, 110, 88, 0.08), 0 2px 6px -1px rgba(58, 46, 40, 0.05);
+  color: #3a2e28;
+}
+
+.theme-golden .parchment-glow {
+  box-shadow: 0 0 25px rgba(212, 155, 72, 0.18), 0 4px 12px rgba(58, 46, 40, 0.06);
+}
+
+.theme-golden ::-webkit-scrollbar-track {
+  background: #ede6d8;
+}
+.theme-golden ::-webkit-scrollbar-thumb {
+  background: #c7b9a5;
+}
+.theme-golden ::-webkit-scrollbar-thumb:hover {
+  background: #a9967e;
+}
+
+/* =========================================================================
+   2. DEEP BLUE TWILIGHT PALETTE (NIGHT MODE)
+   ========================================================================= */
+.theme-twilight {
+  --bg-app: #0b1324;
+  --bg-card: #131f37;
+  --bg-card-elevated: #182744;
+  --bg-card-nested: #1d2e50;
+  --bg-surface-interactive: #223658;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-subtle: #223658;
+  --border-accent: #38bdf8;
+  --accent-primary: #38bdf8;
+  --accent-primary-text: #7dd3fc;
+  --accent-sage: #34d399;
+  --accent-terracotta: #fb923c;
+  --accent-sky: #818cf8;
+
+  background-color: #0b1324;
+  color: #f1f5f9;
+}
+
+.theme-twilight .parchment-card {
+  background-color: #131f37 !important;
+  border: 1px solid #223658 !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.45), 0 2px 8px -1px rgba(0, 0, 0, 0.3);
+}
+
+.theme-twilight .parchment-glow {
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.2), 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.theme-twilight ::-webkit-scrollbar-track {
+  background: #0d162a;
+}
+.theme-twilight ::-webkit-scrollbar-thumb {
+  background: #243556;
+}
+.theme-twilight ::-webkit-scrollbar-thumb:hover {
+  background: #334b75;
+}
+
+/* Headings in Twilight */
+.theme-twilight h1,
+.theme-twilight h2,
+.theme-twilight h3,
+.theme-twilight h4,
+.theme-twilight .font-serif-title {
+  color: #f8fafc;
+}
+
+/* Smooth text contrast overrides in Twilight */
+.theme-twilight .text-\[\#3a2e28\],
+.theme-twilight .text-\[\#2e2520\],
+.theme-twilight .text-\[\#4a3e35\],
+.theme-twilight .text-\[\#52443a\] {
+  color: #f8fafc !important;
+}
+
+.theme-twilight .text-\[\#5d4f45\],
+.theme-twilight .text-\[\#5c4d44\],
+.theme-twilight .text-\[\#635246\],
+.theme-twilight .text-\[\#5d4e44\] {
+  color: #cbd5e1 !important;
+}
+
+.theme-twilight .text-\[\#736357\],
+.theme-twilight .text-\[\#857467\],
+.theme-twilight .text-\[\#8a7566\],
+.theme-twilight .text-\[\#786558\],
+.theme-twilight .text-\[\#8c786a\] {
+  color: #94a3b8 !important;
+}
+
+/* Warm / Gold Accent conversion to Starlight Blue in Twilight */
+.theme-twilight .text-\[\#8a532a\],
+.theme-twilight .text-\[\#995c1a\],
+.theme-twilight .text-\[\#a66d1f\],
+.theme-twilight .text-\[\#b07421\],
+.theme-twilight .text-\[\#6e4618\] {
+  color: #7dd3fc !important;
+}
+
+/* Sage Green Accent conversion to Luminous Emerald in Twilight */
+.theme-twilight .text-\[\#3d5038\],
+.theme-twilight .text-\[\#33462e\],
+.theme-twilight .text-\[\#3b4737\],
+.theme-twilight .text-\[\#2e3a2b\],
+.theme-twilight .text-\[\#42523d\] {
+  color: #6ee7b7 !important;
+}
+
+/* Terracotta / Rust Accent conversion to Sunset Ember in Twilight */
+.theme-twilight .text-\[\#78301c\],
+.theme-twilight .text-\[\#99472e\] {
+  color: #fdba74 !important;
+}
+
+/* Slate Blue Accent conversion to Violet Starlight in Twilight */
+.theme-twilight .text-\[\#2c5469\],
+.theme-twilight .text-\[\#4d7185\] {
+  color: #c7d2fe !important;
+}
+
+/* Background conversions in Twilight */
+.theme-twilight .bg-\[\#fdfbf7\],
+.theme-twilight .bg-\[\#fbf8f2\],
+.theme-twilight .bg-\[\#faf5eb\],
+.theme-twilight .bg-\[\#faf5ec\],
+.theme-twilight .bg-\[\#fefcf8\],
+.theme-twilight .bg-\[\#fbf9f4\],
+.theme-twilight .bg-\[\#fcfbf7\] {
+  background-color: #131f37 !important;
+}
+
+.theme-twilight .bg-\[\#f4eee2\],
+.theme-twilight .bg-\[\#f5ede0\],
+.theme-twilight .bg-\[\#f7eedf\],
+.theme-twilight .bg-\[\#f5ebd8\],
+.theme-twilight .bg-\[\#faf2e3\],
+.theme-twilight .bg-\[\#fbf6ed\],
+.theme-twilight .bg-\[\#f4f1ea\] {
+  background-color: #182744 !important;
+}
+
+.theme-twilight .bg-\[\#ede2cf\],
+.theme-twilight .bg-\[\#ede3cf\],
+.theme-twilight .bg-\[\#eee5d5\],
+.theme-twilight .bg-\[\#ebe3d3\],
+.theme-twilight .bg-\[\#ebe2d0\],
+.theme-twilight .bg-\[\#efe5d2\],
+.theme-twilight .bg-\[\#ebdcc4\],
+.theme-twilight .bg-\[\#f5ecdc\] {
+  background-color: #1e2f50 !important;
+}
+
+.theme-twilight .bg-\[\#eee5d5\]\/60,
+.theme-twilight .bg-\[\#eee5d5\]\/50,
+.theme-twilight .bg-\[\#eee5d5\]\/80 {
+  background-color: rgba(30, 47, 80, 0.6) !important;
+}
+
+/* Border conversions in Twilight */
+.theme-twilight .border-\[\#ded4c3\],
+.theme-twilight .border-\[\#ded2bc\],
+.theme-twilight .border-\[\#ded1be\],
+.theme-twilight .border-\[\#ded1bd\],
+.theme-twilight .border-\[\#d8caa6\],
+.theme-twilight .border-\[\#e2d8c3\],
+.theme-twilight .border-\[\#e2d7c2\],
+.theme-twilight .border-\[\#e5dcce\],
+.theme-twilight .border-\[\#c7b9a5\] {
+  border-color: #223658 !important;
+}
+
+/* Inputs, Textareas, and Selects in Twilight */
+.theme-twilight input:not([type="checkbox"]):not([type="radio"]),
+.theme-twilight textarea,
+.theme-twilight select {
+  background-color: #0e172a !important;
+  border-color: #24375b !important;
+  color: #f8fafc !important;
+}
+.theme-twilight input::placeholder,
+.theme-twilight textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Action buttons in Twilight */
+.theme-twilight .bg-\[\#3a2e28\] {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+.theme-twilight .bg-\[\#3a2e28\]:hover {
+  background-color: #1d4ed8 !important;
+}
+.theme-twilight .hover\:bg-\[\#4d3d35\]:hover,
+.theme-twilight .hover\:bg-\[\#524137\]:hover,
+.theme-twilight .hover\:bg-\[\#4f3f37\]:hover {
+  background-color: #1e40af !important;
+}
+
+/* Location Request & Highlight Gradient Banners in Twilight */
+.theme-twilight .from-\[\#f7eedf\] {
+  --tw-gradient-from: #152442 var(--tw-gradient-from-position) !important;
+}
+.theme-twilight .via-\[\#fbf6ed\] {
+  --tw-gradient-stops: var(--tw-gradient-from), #192a4c var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+.theme-twilight .to-\[\#f5ebd8\] {
+  --tw-gradient-to: #152442 var(--tw-gradient-to-position) !important;
+}
+
+/* =========================================================================
+   3. TYPOGRAPHY MODES (VIETNAMESE & ENGLISH)
+   ========================================================================= */
+.font-mode-vi {
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.font-mode-vi h1,
+.font-mode-vi h2,
+.font-mode-vi h3,
+.font-mode-vi h4,
+.font-mode-vi .font-serif-title {
+  font-family: 'Lora', Georgia, serif;
+  letter-spacing: -0.015em;
+}
+.font-mode-vi .font-handwritten {
+  font-family: 'Caveat', cursive;
+}
+
+.font-mode-en {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.font-mode-en h1,
+.font-mode-en h2,
+.font-mode-en h3,
+.font-mode-en h4,
+.font-mode-en .font-serif-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  letter-spacing: -0.02em;
+}
+.font-mode-en .font-handwritten {
+  font-family: 'Kalam', cursive;
+}
+
+/* =========================================================================
+   4. APPLE SF & GHIBLI TACTILE STYLES
+   ========================================================================= */
+.apple-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(58, 46, 40, 0.05), inset 0 1px 0.5px rgba(255, 255, 255, 0.6);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.apple-icon-badge svg {
+  stroke-width: 1.85px;
+}
+
+/* Tape decoration */
+.tape-top {
+  position: relative;
+}
+.tape-top::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-1deg);
+  width: 70px;
+  height: 20px;
+  background-color: rgba(220, 205, 175, 0.65);
+  border: 1px dashed rgba(160, 140, 110, 0.4);
+  backdrop-filter: blur(1px);
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.theme-twilight .tape-top::before {
+  background-color: rgba(45, 68, 105, 0.65);
+  border: 1px dashed rgba(75, 110, 160, 0.5);
+}
+
+/* Custom soft scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
